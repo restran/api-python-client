@@ -1,8 +1,8 @@
 # api-python-sdk
 
-This is python version sdk for api-gateway. It is based on http lib `requests`, you can use it just like `requests`.
+This is python version sdk for [api-gateway]("https://github.com/restran/api-gateway"). It is based on http lib [requests]("http://docs.python-requests.org/en/master/"), you can use it just like `requests`.
 
-Notice that currently only get and post method are supported.
+Notice that currently only GET and POST method are supported.
 
 ## Usage
 
