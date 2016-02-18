@@ -1,6 +1,6 @@
 # api-python-sdk
 
-This is python version sdk for [api-gateway]("https://github.com/restran/api-gateway"). It is based on http lib [requests]("http://docs.python-requests.org/en/master/"), you can use it just like `requests`.
+This is python version sdk for [api-gateway](https://github.com/restran/api-gateway). It is based on http lib [requests](http://docs.python-requests.org/en/master/), you can use it just like `requests`.
 
 Notice that currently only GET and POST method are supported.
 
@@ -14,9 +14,8 @@ endpoint = 'test_api'
 version = 'v1'
 
 # encrypt_type can use raw or aes
-req = ClientAuthRequest(access_key, secret_key,
-                        api_gateway, endpoint,
-                        version, encrypt_type='aes')
+req = APIRequest(access_key, secret_key, api_gateway, 
+                 endpoint, version, encrypt_type='aes')
 
 # post data
 json_data = {

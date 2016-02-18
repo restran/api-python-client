@@ -5,11 +5,9 @@ from __future__ import unicode_literals
 
 import traceback
 import logging
-import os
 import json
 import sys
 import types
-from copy import copy
 import base64
 import hashlib
 import random
@@ -17,6 +15,7 @@ import time
 import hmac
 from hashlib import sha256
 from urlparse import urlparse, urlunparse
+
 import requests
 from Crypto import Random
 from Crypto.Cipher import AES
@@ -105,7 +104,7 @@ class RequestObject(object):
         self.host = host
 
 
-class ClientAuthRequest(object):
+class APIRequest(object):
     # TODO 重新整理代码, 将签名和加解密部分分离出来
 
     def __init__(self, access_key, secret_key, api_server,
