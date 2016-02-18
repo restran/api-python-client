@@ -29,7 +29,7 @@ r = req.post('/resource/', body=body)
 
 print(r.status_code)
 print(r.content)
-print(r.json)
+print(r.json())
 
 
 # post image
