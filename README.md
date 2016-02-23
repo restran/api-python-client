@@ -12,32 +12,27 @@ secret_key = '1234'
 api_gateway = 'http://127.0.0.1:6500'
 endpoint = 'test_api'
 version = 'v1'
+client = APIClient(access_key, secret_key, api_gateway)
+request = APIRequest(client, endpoint, version)
+# get
+r = request.get('/resource/')
+print(r.content)
 
-# encrypt_type can use raw or aes
-req = APIRequest(access_key, secret_key, api_gateway, 
-                 endpoint, version, encrypt_type='aes')
-
-# post data
 json_data = {
     'a': 1,
     'b': 'test string',
     'c': '中文'
 }
 
-body = json.dumps(json_data, ensure_ascii=False)
-r = req.post('/resource/', body=body)
-
-print(r.status_code)
+# post
+r = request.post('/resource/', json=json_data)
 print(r.content)
-print(r.json())
-
 
 # post image
 with open('img.jpg', 'rb') as f:
-    body = f.read()
-    r = req.post('/resource/', body=body)
+    data = f.read()
+    r = request.post('/resource/', data=data)
 
-
-# get
-r = req.get('/resource/')
+# use aes encrypt
+request = APIRequest(client, endpoint, version, 'aes')
 ```
