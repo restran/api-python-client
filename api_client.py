@@ -13,7 +13,7 @@ import hashlib
 import random
 import time
 import hmac
-from hashlib import sha256
+from hashlib import sha256, sha1
 from urlparse import urlparse, urlunparse
 
 import requests
@@ -363,7 +363,8 @@ class APIRequest(object):
         logger.debug(string_to_sign)
         # 如果不是 unicode 输出会引发异常
         # logger.debug('string_to_sign: %s' % string_to_sign.decode('utf-8'))
-        hash_value = sha256(utf8(string_to_sign)).hexdigest()
+        # 先用 sha1 计算出需要被签名的字符串的 hash 值, 然后再用 sha256 进行 HMAC
+        hash_value = sha1(utf8(string_to_sign)).hexdigest()
         signature = self.sign_string(hash_value)
         return signature
 
@@ -392,7 +393,7 @@ class APIRequest(object):
         logger.debug(string_to_sign)
         # 如果不是 unicode 输出会引发异常
         # logger.debug('string_to_sign: %s' % string_to_sign.decode('utf-8'))
-        hash_value = sha256(utf8(string_to_sign)).hexdigest()
+        hash_value = sha1(utf8(string_to_sign)).hexdigest()
         real_signature = self.sign_string(hash_value)
         if signature != real_signature:
             logger.debug('Signature not match: %s, %s' % (signature, real_signature))
