@@ -238,6 +238,10 @@ class APIRequest(object):
             logger.error(traceback.format_exc())
             return None
 
+        # 由于 requests 的 content 不是 unicode 类型, 为了兼容, 这里改成 utf8
+        if isinstance(body, unicode):
+            body = body.encode('utf-8')
+
         return body
 
     def get(self, uri, params=None, headers=None, **kwargs):
