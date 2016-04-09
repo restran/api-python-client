@@ -7,7 +7,6 @@ import traceback
 import logging
 import json as json_util
 import sys
-import types
 import base64
 import hashlib
 import random
@@ -25,21 +24,13 @@ PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
 
 if PY3:
-    string_types = str
-    integer_types = int
-    class_types = type
     text_type = str
     binary_type = bytes
-
     from urllib.parse import urlencode
     from urllib.parse import urlparse, urlunparse
 else:
     from urllib import urlencode
     from urlparse import urlparse, urlunparse
-
-    string_types = basestring
-    integer_types = (int, long)
-    class_types = (type, types.ClassType)
     text_type = unicode
     binary_type = str
 
