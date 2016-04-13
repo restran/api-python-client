@@ -31,6 +31,7 @@ if PY3:
 else:
     from urllib import urlencode
     from urlparse import urlparse, urlunparse
+
     text_type = unicode
     binary_type = str
 
@@ -53,9 +54,10 @@ class AESCipher(object):
         raw = self._pad(raw)
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        return base64.b64encode(iv + cipher.encrypt(raw))
+        return to_unicode(base64.b64encode(iv + cipher.encrypt(raw)))
 
     def decrypt(self, enc):
+        logger.debug(type(enc))
         enc = base64.b64decode(enc)
         iv = enc[:AES.block_size]
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
@@ -68,22 +70,47 @@ class AESCipher(object):
             return plain
 
     def _pad(self, s):
-        return s + (self.bs - len(s) % self.bs) * chr(self.bs - len(s) % self.bs)
+        return s + (self.bs - len(s) % self.bs) * utf8(chr(self.bs - len(s) % self.bs))
 
     @staticmethod
     def _unpad(s):
         return s[:-ord(s[len(s) - 1:])]
 
 
-def utf8(value):
-    """Get the UTF8-encoded version of a value."""
-    if not isinstance(value, binary_type) and not isinstance(value, text_type):
-        value = binary_type(value)
+_UTF8_TYPES = (bytes, type(None))
 
-    if isinstance(value, text_type):
-        return value.encode('utf-8')
-    else:
+
+def utf8(value):
+    """Converts a string argument to a byte string.
+
+    If the argument is already a byte string or None, it is returned unchanged.
+    Otherwise it must be a unicode string and is encoded as utf8.
+    """
+    if isinstance(value, _UTF8_TYPES):
         return value
+    if not isinstance(value, text_type):
+        raise TypeError(
+            "Expected bytes, unicode, or None; got %r" % type(value)
+        )
+    return value.encode("utf-8")
+
+
+_TO_UNICODE_TYPES = (text_type, type(None))
+
+
+def to_unicode(value):
+    """Converts a string argument to a unicode string.
+
+    If the argument is already a unicode string or None, it is returned
+    unchanged.  Otherwise it must be a byte string and is decoded as utf8.
+    """
+    if isinstance(value, _TO_UNICODE_TYPES):
+        return value
+    if not isinstance(value, bytes):
+        raise TypeError(
+            "Expected bytes, unicode, or None; got %r" % type(value)
+        )
+    return value.decode("utf-8")
 
 
 def utf8_encoded_dict(in_dict):
@@ -229,7 +256,6 @@ class APIRequest(object):
             aes_cipher = AESCipher(self.secret_key)
             if body and len(body) > 0:
                 logger.debug('解密 body')
-                logger.debug(body.encode('hex'))
                 body = aes_cipher.decrypt(utf8(body))
                 # logger.debug(body.decode('hex'))
         except Exception as e:
@@ -239,7 +265,7 @@ class APIRequest(object):
             return None
 
         # 由于 requests 的 content 不是 unicode 类型, 为了兼容, 这里改成 utf8
-        if isinstance(body, unicode):
+        if isinstance(body, text_type):
             body = body.encode('utf-8')
 
         return body
@@ -263,7 +289,9 @@ class APIRequest(object):
         if r.status_code != self.gateway_error_status_code:
             is_valid = self.check_response(r)
             if not is_valid:
-                logger.debug('返回结果签名不正确')
+                # TODO 返回结果签名不正确需要给出提示
+                logger.error('返回结果签名不正确')
+                raise ValueError('返回结果签名不正确')
 
         r_encrypt_type = r.headers.get('x-api-encrypt-type', 'raw')
         if r_encrypt_type == 'aes':
@@ -305,7 +333,7 @@ class APIRequest(object):
     def sign_string(self, string_to_sign):
         new_hmac = hmac.new(utf8(self.secret_key), digestmod=sha256)
         new_hmac.update(utf8(string_to_sign))
-        return new_hmac.digest().encode("base64").rstrip('\n')
+        return to_unicode(b64encode(new_hmac.digest()).rstrip(b'\n'))
 
     def headers_to_sign(self):
         """
@@ -313,7 +341,7 @@ class APIRequest(object):
         in the StringToSign.
         """
         headers_to_sign = {'Host': self.request_data.host}
-        for name, value in self.request_data.headers.items():
+        for name, value in iteritems(self.request_data.headers):
             l_name = name.lower()
             if l_name.startswith('x-api'):
                 headers_to_sign[name] = value
@@ -326,6 +354,7 @@ class APIRequest(object):
         case, sorting them in alphabetical order and then joining
         them into a string, separated by newlines.
         """
+        headers_to_sign = unicode_encoded_dict(headers_to_sign)
         l = sorted(['%s: %s' % (n.lower().strip(),
                                 headers_to_sign[n].strip()) for n in headers_to_sign])
         return '\n'.join(l)
@@ -350,7 +379,7 @@ class APIRequest(object):
         in the StringToSign.
         """
         headers_to_sign = {}
-        for name, value in headers.items():
+        for name, value in iteritems(headers):
             l_name = name.lower()
             if l_name.startswith('x-api'):
                 headers_to_sign[name] = value
@@ -372,7 +401,8 @@ class APIRequest(object):
 
     def signature_request(self):
         string_to_sign = self.string_to_sign()
-        logger.debug(string_to_sign)
+        logger.debug(utf8(string_to_sign))
+        logger.debug(len(string_to_sign))
         # 如果不是 unicode 输出会引发异常
         # logger.debug('string_to_sign: %s' % string_to_sign.decode('utf-8'))
         hash_value = sha1(utf8(string_to_sign)).hexdigest()
@@ -384,7 +414,7 @@ class APIRequest(object):
         if not self.require_response_sign:
             return True
 
-        logger.debug(response.headers)
+        # logger.debug(response.headers)
         try:
             timestamp = int(response.headers.get('X-Api-Timestamp'))
         except ValueError:
